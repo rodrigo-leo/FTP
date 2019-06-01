@@ -1,0 +1,118 @@
+/**
+ * 
+ */
+package itq;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+/**
+ * @author nancy
+ *
+ */
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPReply;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+public class ClienteFTP
+{
+
+    private static final Logger logger = LogManager.getLogger(ClienteFTP.class);
+    static final String HOST = "localhost";
+    static final int PORT = 2021;
+    static Socket clienteSocket;
+
+    public static void main(String[] args)
+    {
+
+        // Creando nuestro objeto ClienteFTP
+        FTPClient client = new FTPClient();
+
+        // Datos para conectar al servidor FTP
+        String ftp = "192.168.99.102"; // También puede ir la IP
+        String user = "userboletazo";
+        String password = "123";
+
+        try
+        {
+            clienteSocket = new Socket(HOST, PORT);
+            OutputStream outStream = clienteSocket.getOutputStream();
+            DataOutputStream flowOut = new DataOutputStream(outStream);
+            flowOut.writeUTF("");
+
+            InputStream inStream = clienteSocket.getInputStream();
+            DataInputStream dataIn = new DataInputStream(inStream);
+            String input = dataIn.readUTF().toString();
+            logger.info("Reaspuesta del server [ok]");
+            Thread.sleep(10000);
+        }
+        catch (InterruptedException e)
+        {
+            logger.error(e.getMessage());
+        }
+        catch (IOException e)
+        {
+            logger.error(e.getMessage());
+        }
+
+        try
+        {
+            // Conectando al servidor
+            client.connect(InetAddress.getByName("192.168.99.102"), 21);
+            System.out.println("Inicia conexion con el servidor");
+            logger.info("Inicia conexion con el servidor FTP la direccion" + ftp);
+            // Logueado un usuario (true = pudo conectarse, false = no pudo
+            // conectarse)
+            boolean estado = client.login(user, password);
+            if (estado)
+            {
+                // client.changeWorkingDirectory("C:\\FTPdocumetos");
+                if (FTPReply.isPositiveCompletion(client.getReplyCode()))
+                {
+                    File file = new File("C:\\FTPPendientes\\holamundo.txt");// direc del documento en el dispositi
+                                                                             // local que se desea subir al ftp
+                    FileInputStream input = new FileInputStream(file);
+                    client.setFileType(FTP.BINARY_FILE_TYPE);
+                    client.enterLocalActiveMode();
+                    System.out.println("Subió satisfactoriamente el archivo");
+                    if (!client.storeFile(file.getName(), input))
+                    {
+                        System.out.println("Subida fallida!");
+                        logger.info("Subida fallida!");
+                    }
+                    input.close();
+                }
+                else
+                {
+                    System.out.println("Error al iniciar sesion de usuario");
+                    logger.info("Error al iniciar sesion de usuario");
+                }
+
+                // Cerrando sesión
+                client.logout();
+
+                // Desconectandose con el servidor
+                client.disconnect();
+            }
+            else
+            {
+                System.out.println("Error al iniciar sesión del cliente");
+            }
+        }
+        catch (IOException ioe)
+        {
+            System.out.println(ioe.getMessage());
+            System.out.print("Error conexion con el server, no se logró subir archivo");
+            logger.info("Error conexion con el server, no se logró subir archivo");
+        }
+    }
+}
